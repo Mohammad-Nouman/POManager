@@ -139,8 +139,9 @@ class PurchaseOrderApp(QWidget):
     def search_purchase_order(self):
         """Filter the QTableWidget to display only matching purchase orders."""
         search_term = self.search_entry.text().strip()  # Get text from QLineEdit
+        print(search_term)
         if not search_term:
-            QMessageBox.warning(self, "Empty Search", "Please enter a search term.")
+            self.load_purchase_orders()
             return
 
         # Clear the table before populating search results
