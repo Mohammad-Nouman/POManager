@@ -5,8 +5,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 
-from POManager.purchase_order import PurchaseOrder  # Importing the PurchaseOrder class
-from POManager.item import Item  # Importing the Item class
+from POManager.purchase_order import PurchaseOrder  
+from POManager.item import Item  
 from POManager.image_processor import ImageProcessor
 
 import traceback
@@ -50,7 +50,7 @@ class PurchaseOrderApp(QWidget):
         button_layout.addWidget(self.add_button)
 
 
-        self.update_button = QPushButton("Update Purchase Order")
+        self.update_button = QPushButton("Purchase Order Details")
         self.update_button.setFixedWidth(200)
         self.update_button.clicked.connect(self.update_purchase_order)
         self.update_button.setStyleSheet("color: white;font-size: 14px;")
@@ -129,6 +129,14 @@ class PurchaseOrderApp(QWidget):
         # Set the window to full screen (maximize window)
         self.showMaximized()
 
+    def update_PO_tree(self,po,row_position):
+            # Populate the row with PurchaseOrder data
+            self.tree.setItem(row_position, 0, QTableWidgetItem(str(po.id)))
+            self.tree.setItem(row_position, 1, QTableWidgetItem(po.po_number))
+            self.tree.setItem(row_position, 2, QTableWidgetItem(po.added_date.strftime("%Y-%m-%d") if po.added_date else "N/A"))
+            self.tree.setItem(row_position, 3, QTableWidgetItem(str(po.total_qty)))
+            self.tree.setItem(row_position, 4, QTableWidgetItem(f"{po.total_amount:,.2f}"))  # Format with commas and 2 decimals
+
     def load_purchase_orders(self):
         try:
             # Load all purchase orders from the database
@@ -163,13 +171,7 @@ class PurchaseOrderApp(QWidget):
                 # Insert PurchaseOrder into the QTableWidget
                 row_position = self.tree.rowCount()  # Get current row count
                 self.tree.insertRow(row_position)  # Add a new row
-
-                # Populate the row with PurchaseOrder data
-                self.tree.setItem(row_position, 0, QTableWidgetItem(str(po.id)))
-                self.tree.setItem(row_position, 1, QTableWidgetItem(po.po_number))
-                self.tree.setItem(row_position, 2, QTableWidgetItem(po.added_date.strftime("%Y-%m-%d") if po.added_date else "N/A"))
-                self.tree.setItem(row_position, 3, QTableWidgetItem(str(po.total_qty)))
-                self.tree.setItem(row_position, 4, QTableWidgetItem(f"{po.total_amount:,.2f}"))  # Format with commas and 2 decimals
+                self.update_PO_tree(po,row_position)
 
         except Exception as e:
             print(f"Error loading purchase orders: {e}")
@@ -245,6 +247,7 @@ class PurchaseOrderApp(QWidget):
         if not ok:
             return
 
+        items = []
         # Step 3: If "Add Through Image" is selected
         if item_method == "Add Through Image":
             # Ask the user to upload an image
@@ -263,10 +266,6 @@ class PurchaseOrderApp(QWidget):
 
             if not items:
                 QMessageBox.warning(self, "No Items Found", "No items were extracted from the image.")
-                return
-        else:
-            # Step 3: If "Add Manually" is selected, initialize an empty items list
-            items = []
 
         # Step 4: Initialize PurchaseOrder and calculate total quantity and total amount
         new_po = PurchaseOrder(po_number)
@@ -287,6 +286,7 @@ class PurchaseOrderApp(QWidget):
         try:
             # Save the PO and get the PO ID
             new_po.id = self.db_handler.add_purchase_order(new_po)
+            self.db_handler.add_purchase_order_items(new_po)
             self.purchase_orders.append(new_po)
 
             # Insert the Purchase Order into the QTableWidget
@@ -299,12 +299,9 @@ class PurchaseOrderApp(QWidget):
             self.tree.setItem(row_position, 3, QTableWidgetItem(str(new_po.total_qty)))
             self.tree.setItem(row_position, 4, QTableWidgetItem(f"{new_po.total_amount:,.2f}"))
 
-            # Step 6: Open the edit items window for further item editing
-            if item_method == "Add Manually":
-                self.open_edit_items_window(po_number, items, new_po, add=True)
-            else:
-                # If items were extracted through the image, no need to open the window since items are already added
-                QMessageBox.information(self, "Success", f"Purchase Order {po_number} added successfully! The items were automatically extracted from the image.")
+            self.open_edit_items_window(po_number, items, new_po, add=None)
+            # If items were extracted through the image, no need to open the window since items are already added
+            QMessageBox.information(self, "Success", f"Purchase Order {po_number} added successfully! The items were automatically extracted from the image.")
 
             # Show success message to the user
             QMessageBox.information(self, "Success", f"Purchase Order {po_number} added successfully! Now you can edit the items.")
@@ -330,12 +327,8 @@ class PurchaseOrderApp(QWidget):
 
                 # Retrieve the PurchaseOrder details from the database
                 purchaseOd = self.db_handler.get_purchase_order_by_po_number(selected_po.po_number)
-
                 # Open the edit items window
-                self.open_edit_items_window(selected_po.po_number, purchaseOd.items, purchaseOd, False)
-
-                # Notify the user of the update action
-                QMessageBox.information(self, "Update PO", f"Update PO: {selected_po.po_number}")
+                self.open_edit_items_window(selected_po.po_number, purchaseOd.items, purchaseOd, selected_row)
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"An error occurred while updating the purchase order:\n{str(e)}")
         else:
@@ -563,12 +556,10 @@ class PurchaseOrderApp(QWidget):
             new_po.items = items
 
             try:
-                if add:
-                    self.db_handler.add_purchase_order_items(new_po)
-                else:
-                    self.db_handler.update_purchase_order(new_po)
-                    self.db_handler.update_purchase_order_items(new_po)
-
+                self.db_handler.update_purchase_order(new_po)
+                self.db_handler.update_purchase_order_items(new_po)
+                if add != None:
+                    self.update_PO_tree(new_po,add)
                 QMessageBox.information(edit_window, "Success", "Purchase Order and Items saved successfully!")
                 edit_window.accept()  # Close the dialog
             except Exception as e:
@@ -582,7 +573,7 @@ class PurchaseOrderApp(QWidget):
             font-size: 14px;
         """
 
-        save_changes_button = QPushButton("Save Changes")
+        save_changes_button = QPushButton("Save Item Changes")
         save_changes_button.setFixedWidth(180)
         save_changes_button.setStyleSheet(button_style)
         save_changes_button.clicked.connect(save_changes)
