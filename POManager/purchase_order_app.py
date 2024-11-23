@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QFrame,
-    QTableWidget, QTableWidgetItem, QScrollBar,QMessageBox,QInputDialog, QFileDialog,QFormLayout,QGroupBox,QDialog,QWidget
-
+    QTableWidget, QTableWidgetItem, QScrollBar,QMessageBox,QInputDialog,
+    QFileDialog, QFormLayout, QGroupBox, QDialog, QWidget, QSizePolicy
 )
 from PyQt5.QtCore import Qt
 
@@ -23,22 +23,74 @@ class PurchaseOrderApp(QWidget):
 
     def create_widgets(self):
         # Main layout for the widget
-        main_layout = QVBoxLayout(self)
+        main_layout = QHBoxLayout(self)
 
-        # Title Label
+        # Left Sidebar Layout (Sky Blue Background)
+        sidebar_layout = QVBoxLayout()
+        sidebar_frame = QFrame(self)
+        sidebar_frame.setLayout(sidebar_layout)
+        sidebar_frame.setStyleSheet("background-color: #00B4D8; padding: 10px;")  # Sky Blue background
+        main_layout.addWidget(sidebar_frame)
+
+        # Title Label in the sidebar
+        sidebar_title_label = QLabel("Actions")
+        sidebar_title_label.setStyleSheet("font-size: 18px; font-weight: bold; padding: 10px; color:white;")
+        sidebar_layout.addWidget(sidebar_title_label)
+
+        # Buttons Section (Move up in the sidebar to align better with the table)
+        button_layout = QVBoxLayout()  # Use QVBoxLayout for vertical stacking
+        button_layout.setSpacing(20)  # Add some spacing between buttons
+        sidebar_layout.addLayout(button_layout)
+
+        # Buttons
+        self.add_button = QPushButton("Add New Purchase Order")
+        self.add_button.setFixedWidth(200)
+        self.add_button.clicked.connect(self.add_purchase_order)
+        self.add_button.setStyleSheet("color: white;font-size: 14px;")
+        button_layout.addWidget(self.add_button)
+
+
+        self.update_button = QPushButton("Update Purchase Order")
+        self.update_button.setFixedWidth(200)
+        self.update_button.clicked.connect(self.update_purchase_order)
+        self.update_button.setStyleSheet("color: white;font-size: 14px;")
+        button_layout.addWidget(self.update_button)
+
+        self.delete_button = QPushButton("Delete Purchase Order")
+        self.delete_button.setFixedWidth(200)
+        self.delete_button.clicked.connect(self.delete_purchase_order)
+        self.delete_button.setStyleSheet("color: white;font-size: 14px;")
+        button_layout.addWidget(self.delete_button)
+
+        self.generate_button = QPushButton("Generate Document")
+        self.generate_button.setFixedWidth(200)
+        self.generate_button.clicked.connect(self.generate_document)
+        self.generate_button.setStyleSheet("color: white;font-size: 14px;")
+        button_layout.addWidget(self.generate_button)
+
+        # Stretching the button layout to move it down
+        sidebar_layout.addStretch(1)  # This pushes the buttons toward the bottom
+
+        # Content Layout
+        content_layout = QVBoxLayout()
+        content_frame = QFrame(self)
+        content_frame.setLayout(content_layout)
+        main_layout.addWidget(content_frame)
+
+        # Title Label for Content Section
         self.title_label = QLabel("Purchase Order Management")
         self.title_label.setStyleSheet("font-size: 18px; font-weight: bold; text-align: center;")
         self.title_label.setAlignment(Qt.AlignCenter)
-        main_layout.addWidget(self.title_label)
+        content_layout.addWidget(self.title_label)
 
-        # Search Section
+        # Search Section (Move down a little)
         search_frame = QFrame(self)
         search_layout = QHBoxLayout(search_frame)
         search_frame.setLayout(search_layout)
-        main_layout.addWidget(search_frame)
+        content_layout.addWidget(search_frame)
 
         self.search_label = QLabel("Search Purchase Orders:")
-        self.search_label.setStyleSheet("font-size: 14px;")
+        self.search_label.setStyleSheet("font-size: 14px; padding-left: 10px;")  # Padding to move label a bit down
         search_layout.addWidget(self.search_label)
 
         self.search_entry = QLineEdit(self)
@@ -49,28 +101,10 @@ class PurchaseOrderApp(QWidget):
         self.search_button.clicked.connect(self.search_purchase_order)
         search_layout.addWidget(self.search_button)
 
-        # Buttons Section
-        button_frame = QFrame(self)
-        button_layout = QHBoxLayout(button_frame)
-        button_frame.setLayout(button_layout)
-        main_layout.addWidget(button_frame)
+        # Add some spacing to move the search section a little down
+        content_layout.addSpacing(20)
 
-        self.add_button = QPushButton("Add New Purchase Order")
-        self.add_button.setFixedWidth(200)
-        self.add_button.clicked.connect(self.add_purchase_order)
-        button_layout.addWidget(self.add_button)
-
-        self.update_button = QPushButton("Update Purchase Order")
-        self.update_button.setFixedWidth(200)
-        self.update_button.clicked.connect(self.update_purchase_order)
-        button_layout.addWidget(self.update_button)
-
-        self.delete_button = QPushButton("Delete Purchase Order")
-        self.delete_button.setFixedWidth(200)
-        self.delete_button.clicked.connect(self.delete_purchase_order)
-        button_layout.addWidget(self.delete_button)
-
-        # Table for displaying Purchase Orders
+        # Table for displaying Purchase Orders (Responsive)
         self.tree = QTableWidget(self)
         self.tree.setColumnCount(5)
         self.tree.setHorizontalHeaderLabels(["ID", "PO Number", "Order Date", "Total Qty", "Total Amount"])
@@ -83,11 +117,17 @@ class PurchaseOrderApp(QWidget):
         self.tree.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
 
         # Add the table to the layout
-        main_layout.addWidget(self.tree)
+        content_layout.addWidget(self.tree)
 
+        # Make the table responsive to window resizing
+        self.tree.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
         # Add Scrollbar to the table
         self.scrollbar = QScrollBar(Qt.Vertical, self)
         self.tree.setVerticalScrollBar(self.scrollbar)
+
+        # Set the window to full screen (maximize window)
+        self.showMaximized()
 
     def load_purchase_orders(self):
         try:
@@ -344,14 +384,50 @@ class PurchaseOrderApp(QWidget):
         else:
             QMessageBox.warning(self, "No Selection", "Please select a purchase order to delete.")
 
+    def generate_document(self):
+        pass
+
     def open_edit_items_window(self, po_number, items, new_po, add):
-        """Open a window to edit items for a purchase order."""
+        """Open a window to edit items for a purchase order with a sidebar."""
         # Create the QDialog window
         edit_window = QDialog(self)
         edit_window.setWindowTitle(f"Edit Items for PO {po_number}")
-        edit_window.resize(800, 600)
+        edit_window.resize(1000, 600)  # Adjust window size to accommodate sidebar
+
+        # Main layout for the window (horizontal layout)
+        main_layout = QHBoxLayout(edit_window)
+
+        # Sidebar Layout (Aesthetic Blue Background with fading effect)
+        sidebar_layout = QVBoxLayout()
+        sidebar_frame = QWidget(edit_window)  # Use QWidget instead of QFrame
+        sidebar_frame.setLayout(sidebar_layout)
         
-        layout = QVBoxLayout(edit_window)
+        # Gradient effect for fading blue color applied directly to the sidebar frame
+        sidebar_frame.setStyleSheet("background-color: #00B4D8; padding: 20px;")  # Apply gradient for a fading effect from blue to light blue
+        
+        main_layout.addWidget(sidebar_frame)
+
+        # Title Label in the sidebar
+        sidebar_title_label = QLabel("Actions")
+        sidebar_title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: white; padding: 10px;")
+        sidebar_layout.addWidget(sidebar_title_label)
+
+        # Buttons Section with white buttons
+        button_layout = QVBoxLayout()  # Use QVBoxLayout for vertical stacking of buttons
+        button_layout.setSpacing(20)  # Add some spacing between buttons
+        sidebar_layout.addLayout(button_layout)
+
+        # Stretching the button layout to push the buttons toward the bottom of the sidebar
+        sidebar_layout.addStretch(1)
+
+        # Main Content Layout (for table and item details)
+        content_layout = QVBoxLayout()
+        main_layout.addLayout(content_layout)
+
+        # Heading for the purchase order
+        heading_label = QLabel(f"Purchase Order {po_number} Items")
+        heading_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #1E90FF; padding: 20px;")
+        content_layout.addWidget(heading_label)
 
         # Table for displaying items
         columns = ["Cart Part No", "Country of Origin", "A/Unit", "Qty", "Rate Include GST", "Nomenclature"]
@@ -370,7 +446,7 @@ class PurchaseOrderApp(QWidget):
             table.setItem(row, 3, QTableWidgetItem(str(item.qty)))
             table.setItem(row, 4, QTableWidgetItem(f"{item.rate_include_gst:.2f}"))
             table.setItem(row, 5, QTableWidgetItem(item.nomenclature))
-        layout.addWidget(table)
+        content_layout.addWidget(table)
 
         # Form for editing selected item
         form_layout = QFormLayout()
@@ -390,7 +466,7 @@ class PurchaseOrderApp(QWidget):
 
         form_group = QGroupBox("Edit Item Details")
         form_group.setLayout(form_layout)
-        layout.addWidget(form_group)
+        content_layout.addWidget(form_group)
 
         selected_row = None
 
@@ -405,6 +481,17 @@ class PurchaseOrderApp(QWidget):
                 qty_edit.setText(table.item(selected_row, 3).text())
                 rate_include_gst_edit.setText(table.item(selected_row, 4).text())
                 nomenclature_edit.setText(table.item(selected_row, 5).text())
+
+        def delete_item():
+            nonlocal selected_row
+            if selected_row is not None:
+                # Remove item from the list and table
+                deleted_item = items[selected_row]
+                self.db_handler.delete_item(deleted_item.id)
+                items.pop(selected_row)
+                table.removeRow(selected_row)
+
+                QMessageBox.information(edit_window, "Success", "Item deleted successfully!")
 
         def validate_entries():
             try:
@@ -450,8 +537,7 @@ class PurchaseOrderApp(QWidget):
                     float(rate_include_gst_edit.text()),
                     nomenclature_edit.text()
                 )
-                items.append(new_item)
-                
+
                 # Add the new item to the table
                 row = table.rowCount()
                 table.insertRow(row)
@@ -462,11 +548,15 @@ class PurchaseOrderApp(QWidget):
                 table.setItem(row, 4, QTableWidgetItem(f"{new_item.rate_include_gst:.2f}"))
                 table.setItem(row, 5, QTableWidgetItem(new_item.nomenclature))
 
+                item_id = self.db_handler.add_item(item=new_item,purchase_order_id=new_po.id)
+                new_item.id = item_id
+                items.append(new_item)
+
                 QMessageBox.information(edit_window, "Success", "New item added successfully!")
 
         def save_items_and_po():
             total_qty = sum(item.qty for item in items)
-            total_amount = sum(item.qty * item.rate_include_gst for item in items)
+            total_amount = sum(item.qty * int(item.rate_include_gst) for item in items)
 
             new_po.total_qty = total_qty
             new_po.total_amount = total_amount
@@ -484,19 +574,39 @@ class PurchaseOrderApp(QWidget):
             except Exception as e:
                 QMessageBox.critical(edit_window, "Error", f"Error saving items and PO: {str(e)}")
 
-        # Buttons for actions
-        button_layout = QHBoxLayout()
-        save_changes_button = QPushButton("Save Changes")
-        save_changes_button.clicked.connect(save_changes)
-        save_items_button = QPushButton("Save Items and PO")
-        save_items_button.clicked.connect(save_items_and_po)
-        add_item_button = QPushButton("Add New Item")
-        add_item_button.clicked.connect(add_new_item)
+        # Create white buttons for sidebar with some padding and effects
+        button_style = """
+            color: white;
+            border: 1px solid white;
+            padding: 10px;
+            font-size: 14px;
+        """
 
+        save_changes_button = QPushButton("Save Changes")
+        save_changes_button.setFixedWidth(180)
+        save_changes_button.setStyleSheet(button_style)
+        save_changes_button.clicked.connect(save_changes)
         button_layout.addWidget(save_changes_button)
+
+        delete_item_button = QPushButton("Delete Item")
+        delete_item_button.setFixedWidth(180)
+        delete_item_button.setStyleSheet(button_style)
+        delete_item_button.clicked.connect(delete_item)
+        button_layout.addWidget(delete_item_button)
+
+        add_item_button = QPushButton("Add New Item")
+        add_item_button.setFixedWidth(180)
+        add_item_button.setStyleSheet(button_style)
+        add_item_button.clicked.connect(add_new_item)
         button_layout.addWidget(add_item_button)
+
+        save_items_button = QPushButton("Save Items and PO")
+        save_items_button.setFixedWidth(180)
+        save_items_button.setStyleSheet(button_style)
+        save_items_button.clicked.connect(save_items_and_po)
         button_layout.addWidget(save_items_button)
-        layout.addLayout(button_layout)
+
+        sidebar_layout.addLayout(button_layout)
 
         # Connect the item selection to the form population
         table.itemSelectionChanged.connect(on_item_select)

@@ -136,7 +136,39 @@ class DBHandler:
         except Exception as e:
             self.connection.rollback()
             raise e
-        
+
+    def add_item(self, item, purchase_order_id):
+        try:
+            # Insert the item into the Item table
+            item_query = """
+            INSERT INTO Item (purchase_order_id, cart_part_no, country_of_origin, a_unit, qty, rate_include_gst, nomenclature)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            
+            # Execute the query with item details
+            self.execute_query(item_query, (
+                purchase_order_id,
+                item.cart_part_no,
+                item.country_of_origin,
+                item.a_unit,
+                item.qty,
+                item.rate_include_gst,
+                item.nomenclature
+            ))
+
+            # Commit the transaction
+            self.connection.commit()
+
+
+            item_query_id_query = "SELECT LAST_INSERT_ID()"
+            item_id = self.fetch_query(item_query_id_query)[0]['LAST_INSERT_ID()']
+            
+            return item_id  # Return the ID of the newly inserted item
+        except Exception as e:
+            # Rollback in case of error
+            self.connection.rollback()
+            raise e
+       
     def update_purchase_order_items(self, purchase_order):
         try:
             # Update items in the items table
@@ -283,6 +315,10 @@ class DBHandler:
     def delete_items_for_po(self, po_number):
         query = "DELETE FROM Item WHERE purchase_order_id = (SELECT id FROM PurchaseOrder WHERE po_number = %s)"
         self.execute_query(query, (po_number,))
+
+    def delete_item(self, id):
+        query = "DELETE FROM Item WHERE id =  %s"
+        self.execute_query(query, (id,))
     
     def delete_purchase_order(self, po_number):
         try:
