@@ -139,7 +139,6 @@ class PurchaseOrderApp(QWidget):
     def search_purchase_order(self):
         """Filter the QTableWidget to display only matching purchase orders."""
         search_term = self.search_entry.text().strip()  # Get text from QLineEdit
-        print(search_term)
         if not search_term:
             self.load_purchase_orders()
             return
@@ -200,29 +199,41 @@ class PurchaseOrderApp(QWidget):
             QMessageBox.critical(self, "Database Error", f"An error occurred while checking the purchase order:\n{str(e)}")
             return
 
-        # Step 2: Ask the user to upload an image
-        file_path, _ = QFileDialog.getOpenFileName(self, "Upload Image", "", "Image Files (*.png *.jpg *.jpeg)")
-        if not file_path:
-            QMessageBox.warning(self, "No Image", "No image file selected.")
+        # Step 2: Ask the user how they want to add items
+        item_method, ok = QInputDialog.getItem(self, "Add Items", "Select method to add items:",
+                                            ["Add Manually", "Add Through Image"], 0, False)
+        if not ok:
             return
 
-        # Step 3: Process the image to extract items
-        try:
-            image_processor = ImageProcessor(file_path)
-            items = image_processor.process_and_extract_items(po_number)
-        except Exception as e:
-            QMessageBox.critical(self, "Processing Error", f"An error occurred while processing the image:\n{str(e)}")
-            return
+        # Step 3: If "Add Through Image" is selected
+        if item_method == "Add Through Image":
+            # Ask the user to upload an image
+            file_path, _ = QFileDialog.getOpenFileName(self, "Upload Image", "", "Image Files (*.png *.jpg *.jpeg)")
+            if not file_path:
+                QMessageBox.warning(self, "No Image", "No image file selected.")
+                return
 
-        if not items:
-            QMessageBox.warning(self, "No Items Found", "No items were extracted from the image.")
-            return
+            # Process the image to extract items
+            try:
+                image_processor = ImageProcessor(file_path)
+                items = image_processor.process_and_extract_items(po_number)
+            except Exception as e:
+                QMessageBox.critical(self, "Processing Error", f"An error occurred while processing the image:\n{str(e)}")
+                return
+
+            if not items:
+                QMessageBox.warning(self, "No Items Found", "No items were extracted from the image.")
+                return
+        else:
+            # Step 3: If "Add Manually" is selected, initialize an empty items list
+            items = []
 
         # Step 4: Initialize PurchaseOrder and calculate total quantity and total amount
         new_po = PurchaseOrder(po_number)
         total_qty = 0
         total_amount = 0
 
+        # If items are extracted from the image, we add them to the PO
         for item in items:
             new_po.add_item(item)
             if item.qty and item.rate_include_gst:
@@ -249,7 +260,11 @@ class PurchaseOrderApp(QWidget):
             self.tree.setItem(row_position, 4, QTableWidgetItem(f"{new_po.total_amount:,.2f}"))
 
             # Step 6: Open the edit items window for further item editing
-            self.open_edit_items_window(po_number, items, new_po, add=True)
+            if item_method == "Add Manually":
+                self.open_edit_items_window(po_number, items, new_po, add=True)
+            else:
+                # If items were extracted through the image, no need to open the window since items are already added
+                QMessageBox.information(self, "Success", f"Purchase Order {po_number} added successfully! The items were automatically extracted from the image.")
 
             # Show success message to the user
             QMessageBox.information(self, "Success", f"Purchase Order {po_number} added successfully! Now you can edit the items.")
@@ -424,6 +439,31 @@ class PurchaseOrderApp(QWidget):
 
                 QMessageBox.information(edit_window, "Success", "Item updated successfully!")
 
+        def add_new_item():
+            """Add a new item to the items list and table."""
+            if validate_entries():
+                new_item = Item(
+                    cart_part_no_edit.text(),
+                    country_of_origin_edit.text(),
+                    a_unit_edit.text(),
+                    int(qty_edit.text()),
+                    float(rate_include_gst_edit.text()),
+                    nomenclature_edit.text()
+                )
+                items.append(new_item)
+                
+                # Add the new item to the table
+                row = table.rowCount()
+                table.insertRow(row)
+                table.setItem(row, 0, QTableWidgetItem(new_item.cart_part_no))
+                table.setItem(row, 1, QTableWidgetItem(new_item.country_of_origin))
+                table.setItem(row, 2, QTableWidgetItem(new_item.a_unit))
+                table.setItem(row, 3, QTableWidgetItem(str(new_item.qty)))
+                table.setItem(row, 4, QTableWidgetItem(f"{new_item.rate_include_gst:.2f}"))
+                table.setItem(row, 5, QTableWidgetItem(new_item.nomenclature))
+
+                QMessageBox.information(edit_window, "Success", "New item added successfully!")
+
         def save_items_and_po():
             total_qty = sum(item.qty for item in items)
             total_amount = sum(item.qty * item.rate_include_gst for item in items)
@@ -450,8 +490,11 @@ class PurchaseOrderApp(QWidget):
         save_changes_button.clicked.connect(save_changes)
         save_items_button = QPushButton("Save Items and PO")
         save_items_button.clicked.connect(save_items_and_po)
+        add_item_button = QPushButton("Add New Item")
+        add_item_button.clicked.connect(add_new_item)
 
         button_layout.addWidget(save_changes_button)
+        button_layout.addWidget(add_item_button)
         button_layout.addWidget(save_items_button)
         layout.addLayout(button_layout)
 
