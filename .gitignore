@@ -1,0 +1,55 @@
+# Python bytecode files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Database files
+*.db
+*.sqlite3
+*.sqlite
+
+# MySQL configuration files
+*.sql
+*.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.iml
+
+# MacOS specific files
+.DS_Store
+
+# Windows specific files
+Thumbs.db
+
+# PyQt build directories
+build/
+dist/
+*.so
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Flask or Django configurations if used
+instance/
+*.db
+*.sqlite3
+
+# Logs
+*.log
+*.out
+
+# Backup files
+*~
+*.bak
+*.swp
